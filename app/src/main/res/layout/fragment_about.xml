@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="About Us"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Welcome to our Quiz App! This app is designed to test your knowledge and provide an interactive learning experience. Challenge yourself with a variety of questions from different categories and improve your knowledge in an engaging way. Enjoy the learning journey and have fun!\n\nDeveloped by: Ayesha Ahmad"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>
