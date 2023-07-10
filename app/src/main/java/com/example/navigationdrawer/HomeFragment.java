@@ -16,6 +16,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -109,7 +110,7 @@ public class HomeFragment extends Fragment {
         if (currentQuestionIndex < quizQuestions.size()) {
             displayQuestion();
         } else {
-            answerTextView.setText("Quiz completed. Click 'Result' .");
+            answerTextView.setText("Quiz completed");
         }
     }
 
@@ -143,24 +144,6 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void displayQuestion() {
-        String question = quizQuestions.get(currentQuestionIndex);
-        letterTextView.setText(question);
-
-        // Reset the answer text view
-        answerTextView.setText("");
-        answerString = getAnswerStringFromQuestion(question);
-    }
-
-    private String getAnswerStringFromQuestion(String question) {
-        if (question.contains("sky")) {
-            return "Sky Letter";
-        } else if (question.contains("grass")) {
-            return "Grass Letter";
-        } else {
-            return "Root Letter";
-        }
-    }
 
     private void showResult() {
         double score = (double) correctAnswerCount / quizQuestions.size() * 100;
@@ -172,12 +155,29 @@ public class HomeFragment extends Fragment {
         answerTextView.setText(resultMessage);
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        // Close the database when the fragment is destroyed
-        if (databaseHelper != null) {
-            databaseHelper.close();
+    private void displayQuestion() {
+        String question = quizQuestions.get(currentQuestionIndex);
+        char letter = getLetterFromQuestion(question);
+        letterTextView.setText("Select the letter: " + letter);
+
+        // Reset the answer text view
+        answerTextView.setText("");
+        answerString = getAnswerStringFromLetter(letter);
+    }
+
+    private char getLetterFromQuestion(String question) {
+        String[] words = question.split(" ");
+        return words[words.length - 1].charAt(0);
+    }
+
+    private String getAnswerStringFromLetter(char letter) {
+        if (Arrays.binarySearch(skyLetters, letter) >= 0) {
+            return "Sky Letter";
+        } else if (Arrays.binarySearch(grassLetters, letter) >= 0) {
+            return "Grass Letter";
+        } else {
+            return "Root Letter";
         }
     }
+
 }
