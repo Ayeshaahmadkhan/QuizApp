@@ -15,7 +15,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 public class HomeFragment extends Fragment {
@@ -32,6 +34,10 @@ public class HomeFragment extends Fragment {
     private static final String COLUMN_QUESTION = "question";
 
     private DatabaseHelper databaseHelper;
+    private List<String> questionList;
+    private List<String> quizQuestions;
+    private int currentQuestionIndex = 0;
+    private int correctAnswerCount = 0;
 
     @Nullable
     @Override
@@ -65,17 +71,25 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        Button resultButton = view.findViewById(R.id.result_button);
+        resultButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showResult();
+            }
+        });
+
         // Initialize the database helper
         databaseHelper = new DatabaseHelper(getContext());
 
-        // Generate random questions and insert them into the database if it's empty
-        if (getQuestionCount() == 0) {
-            insertQuestionsIntoDatabase();
-        }
+        // Retrieve the list of questions from the database
+        questionList = getQuestionList();
 
-        // Get a random question from the database
-        String randomQuestion = getRandomQuestionFromDatabase();
-        letterTextView.setText(randomQuestion);
+        // Generate the quiz questions
+        generateQuizQuestions();
+
+        // Display the first question
+        displayQuestion();
 
         return view;
     }
@@ -83,66 +97,59 @@ public class HomeFragment extends Fragment {
     private void checkAnswer(String selectedOption) {
         if (selectedOption.equals(answerString)) {
             answerTextView.setText("Awesome, your answer is right");
+            correctAnswerCount++;
         } else {
             answerTextView.setText("Incorrect! The answer is " + answerString);
         }
 
-        // Wait for 5 seconds and create a new question
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                String randomQuestion = getRandomQuestionFromDatabase();
-                letterTextView.setText(randomQuestion);
-                answerTextView.setText("");
-            }
-        }, 5000); // 5000 milliseconds = 5 seconds
+        // Move to the next question
+        currentQuestionIndex++;
+
+        // Check if all questions have been answered
+        if (currentQuestionIndex < quizQuestions.size()) {
+            displayQuestion();
+        } else {
+            answerTextView.setText("Quiz completed. Click 'Result' .");
+        }
     }
 
-    private int getQuestionCount() {
+    private List<String> getQuestionList() {
         SQLiteDatabase db = databaseHelper.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_NAME, null);
-        int count = 0;
+        List<String> questionList = new ArrayList<>();
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_NAME, null);
+
         if (cursor != null && cursor.moveToFirst()) {
-            count = cursor.getInt(0);
+            do {
+                String question = cursor.getString(cursor.getColumnIndex(COLUMN_QUESTION));
+                questionList.add(question);
+            } while (cursor.moveToNext());
             cursor.close();
         }
+
         db.close();
-        return count;
+        return questionList;
     }
 
-    private void insertQuestionsIntoDatabase() {
-        SQLiteDatabase db = databaseHelper.getWritableDatabase();
-        ContentValues values = new ContentValues();
+    private void generateQuizQuestions() {
+        quizQuestions = new ArrayList<>();
 
-        for (char letter : skyLetters) {
-            values.put(COLUMN_QUESTION, "Select the sky letter: " + letter);
-            db.insert(TABLE_NAME, null, values);
+        // Shuffle the question list
+        Collections.shuffle(questionList);
+
+        // Select the first 5 questions from the shuffled list
+        int questionCount = Math.min(5, questionList.size());
+        for (int i = 0; i < questionCount; i++) {
+            quizQuestions.add(questionList.get(i));
         }
-
-        for (char letter : grassLetters) {
-            values.put(COLUMN_QUESTION, "Select the grass letter: " + letter);
-            db.insert(TABLE_NAME, null, values);
-        }
-
-        for (char letter : rootLetters) {
-            values.put(COLUMN_QUESTION, "Select the root letter: " + letter);
-            db.insert(TABLE_NAME, null, values);
-        }
-
-        db.close();
     }
 
-    private String getRandomQuestionFromDatabase() {
-        SQLiteDatabase db = databaseHelper.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_NAME + " ORDER BY RANDOM() LIMIT 1", null);
-        String question = "";
-        if (cursor != null && cursor.moveToFirst()) {
-            question = cursor.getString(cursor.getColumnIndex(COLUMN_QUESTION));
-            answerString = getAnswerStringFromQuestion(question);
-            cursor.close();
-        }
-        db.close();
-        return question;
+    private void displayQuestion() {
+        String question = quizQuestions.get(currentQuestionIndex);
+        letterTextView.setText(question);
+
+        // Reset the answer text view
+        answerTextView.setText("");
+        answerString = getAnswerStringFromQuestion(question);
     }
 
     private String getAnswerStringFromQuestion(String question) {
@@ -153,6 +160,16 @@ public class HomeFragment extends Fragment {
         } else {
             return "Root Letter";
         }
+    }
+
+    private void showResult() {
+        double score = (double) correctAnswerCount / quizQuestions.size() * 100;
+        String resultMessage = "Quiz Result:\n" +
+                "Correct Answers: " + correctAnswerCount + "\n" +
+                "Total Questions: " + quizQuestions.size() + "\n" +
+                "Score: " + score + "%";
+
+        answerTextView.setText(resultMessage);
     }
 
     @Override
